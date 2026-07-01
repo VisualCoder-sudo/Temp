@@ -169,6 +169,7 @@
             padding:0 8px;gap:4px;
             position:relative;
         }
+        .menu-item-wrap{position:relative;flex-shrink:0;}
         .menu-btn{
             padding:4px 12px;
             background:none;border:1px solid transparent;
@@ -177,12 +178,12 @@
         }
         .menu-btn:hover,.menu-btn.open{background:var(--sidebar);border-color:var(--border);}
         .menu-dropdown{
-            position:absolute;top:calc(100% + 4px);
+            position:absolute;top:calc(100% + 4px);left:0;
             background:var(--sidebar);
             border:1px solid var(--border);
             border-radius:8px;
             box-shadow:0 8px 24px rgba(0,0,0,0.5);
-            z-index:200;min-width:160px;
+            z-index:200;min-width:180px;
             padding:4px 0;
             display:none;
         }
@@ -475,40 +476,45 @@
             </div>
             <!-- Menu bar -->
             <div class="menu-bar" id="menu-bar">
-                <button class="menu-btn" data-menu="file">File</button>
-                <button class="menu-btn" data-menu="edit">Edit</button>
-                <button class="menu-btn" data-menu="find-menu">Find</button>
-                <!-- Dropdowns -->
-                <div class="menu-dropdown" id="menu-file">
-                    <div class="menu-label">File</div>
-                    <button class="menu-item" id="mi-new-file">＋ New File</button>
-                    <button class="menu-item" id="mi-new-folder">📁 New Folder</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-upload">↑ Upload File</button>
-                    <button class="menu-item" id="mi-download">↓ Download File</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-delete-file">🗑 Delete File</button>
-                    <button class="menu-item" id="mi-duplicate">⧉ Duplicate File</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-publish">✓ Publish Changes</button>
+                <div class="menu-item-wrap">
+                    <button class="menu-btn" data-menu="file">File</button>
+                    <div class="menu-dropdown" id="menu-file">
+                        <div class="menu-label">File</div>
+                        <button class="menu-item" id="mi-new-file">＋ New File</button>
+                        <button class="menu-item" id="mi-new-folder">📁 New Folder</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-upload">↑ Upload File</button>
+                        <button class="menu-item" id="mi-download">↓ Download File</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-delete-file">🗑 Delete File</button>
+                        <button class="menu-item" id="mi-duplicate">⧉ Duplicate File</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-publish">✓ Publish Changes</button>
+                    </div>
                 </div>
-                <div class="menu-dropdown" id="menu-edit">
-                    <div class="menu-label">Edit</div>
-                    <button class="menu-item" id="mi-undo">↩ Undo</button>
-                    <button class="menu-item" id="mi-redo">↪ Redo</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-cut">✂ Cut</button>
-                    <button class="menu-item" id="mi-copy">⧉ Copy</button>
-                    <button class="menu-item" id="mi-paste">📋 Paste</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-select-all">⬚ Select all</button>
+                <div class="menu-item-wrap">
+                    <button class="menu-btn" data-menu="edit">Edit</button>
+                    <div class="menu-dropdown" id="menu-edit">
+                        <div class="menu-label">Edit</div>
+                        <button class="menu-item" id="mi-undo">↩ Undo</button>
+                        <button class="menu-item" id="mi-redo">↪ Redo</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-cut">✂ Cut</button>
+                        <button class="menu-item" id="mi-copy">⧉ Copy</button>
+                        <button class="menu-item" id="mi-paste">📋 Paste</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-select-all">⬚ Select all</button>
+                    </div>
                 </div>
-                <div class="menu-dropdown" id="menu-find-menu">
-                    <div class="menu-label">Find</div>
-                    <button class="menu-item" id="mi-find">🔍 Find</button>
-                    <button class="menu-item" id="mi-find-replace">⇄ Find and Replace</button>
-                    <div class="menu-sep"></div>
-                    <button class="menu-item" id="mi-replace-all">⇉ Replace all</button>
+                <div class="menu-item-wrap">
+                    <button class="menu-btn" data-menu="find-menu">Find</button>
+                    <div class="menu-dropdown" id="menu-find-menu">
+                        <div class="menu-label">Find</div>
+                        <button class="menu-item" id="mi-find">🔍 Find</button>
+                        <button class="menu-item" id="mi-find-replace">⇄ Find and Replace</button>
+                        <div class="menu-sep"></div>
+                        <button class="menu-item" id="mi-replace-all">⇉ Replace all</button>
+                    </div>
                 </div>
             </div>
             <!-- Find bar -->
@@ -1176,9 +1182,9 @@ function wireUI() {
                 document.getElementById(id).classList.add('open');
                 btn.classList.add('open');
                 openMenuId = id;
-                // Position dropdown below the button
-                const rect = btn.getBoundingClientRect();
-                document.getElementById(id).style.left = rect.left + 'px';
+                // Dropdown is anchored via CSS (position:absolute; left:0)
+                // relative to its own .menu-item-wrap, so it always sits
+                // directly under its button — no manual positioning needed.
             }
         };
     });
