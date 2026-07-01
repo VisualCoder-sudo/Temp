@@ -26,7 +26,7 @@
             --mono:'Space Mono',monospace;
             --sans:'DM Sans',sans-serif;
         }
-        html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden;}
+        html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden;position:fixed;inset:0;width:100%;}
         ::-webkit-scrollbar{width:5px;height:5px;}
         ::-webkit-scrollbar-track{background:transparent;}
         ::-webkit-scrollbar-thumb{background:#555;border-radius:3px;}
@@ -35,7 +35,7 @@
         #auth-gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;font-family:var(--mono);color:var(--text-muted);font-size:14px;}
 
         /* ── Shell ── */
-        .shell{display:flex;flex-direction:column;height:100vh;}
+        .shell{display:flex;flex-direction:column;position:fixed;inset:0;width:100%;}
 
         /* ── Top bar ── */
         .topbar{
@@ -935,7 +935,11 @@ function openFile(fileId) {
     // On mobile, close the file-explorer drawer once a file is picked
     document.getElementById('cs-sidebar').classList.remove('open');
     document.getElementById('sidebar-backdrop').classList.remove('open');
-    ta.focus();
+    // preventScroll stops mobile browsers from jumping the page when the
+    // textarea receives focus (the classic "teleport to bottom" bug)
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(0, 0);
+    ta.scrollTop = 0;
 }
 
 function closeEditor() {
@@ -1287,4 +1291,4 @@ function closeAllMenus() {
 }
 </script>
 </body>
-    </html>
+</html>
