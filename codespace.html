@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codespace — CodeCloud</title>
+    <link rel="icon" href="Images/CodeCloud.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+        :root{
+            --bg:#1e1e1e;
+            --panel:#2d2d2d;
+            --sidebar:#383838;
+            --border:#555;
+            --text:#e0e0e0;
+            --text-muted:#999;
+            --accent:#5a9fd4;
+            --accent-dim:#3a7fb5;
+            --success:#6bcb77;
+            --danger:#f47c7c;
+            --warn:#f4c76b;
+            --pill-bg:#4a4a4a;
+            --pill-border:#666;
+            --mono:'Space Mono',monospace;
+            --sans:'DM Sans',sans-serif;
+        }
+        html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);overflow:hidden;}
+        ::-webkit-scrollbar{width:5px;height:5px;}
+        ::-webkit-scrollbar-track{background:transparent;}
+        ::-webkit-scrollbar-thumb{background:#555;border-radius:3px;}
+
+        /* ── Auth gate ── */
+        #auth-gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;font-family:var(--mono);color:var(--text-muted);font-size:14px;}
+
+        /* ── Shell ── */
+        .shell{display:flex;flex-direction:column;height:100vh;}
+
+        /* ── Top bar ── */
+        .topbar{
+            height:48px;flex-shrink:0;
+            background:var(--panel);
+            border-bottom:1px solid var(--border);
+            display:flex;align-items:center;justify-content:space-between;
+            padding:0 14px;gap:12px;
+        }
+        .topbar-left{display:flex;align-items:center;gap:10px;}
+        .topbar-right{display:flex;align-items:center;gap:10px;}
+        .btn-back{
+            width:32px;height:32px;border-radius:50%;
+            background:var(--pill-bg);border:1px solid var(--pill-border);
+            color:var(--text);font-size:16px;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;
+            transition:background 0.15s;
+        }
+        .btn-back:hover{background:#5a5a5a;}
+        .cs-title{
+            background:var(--pill-bg);border:1px solid var(--pill-border);
+            border-radius:20px;padding:5px 16px;
+            font-size:14px;font-weight:600;color:var(--text);
+        }
+        .people-btn{
+            display:flex;align-items:center;gap:8px;
+            background:var(--pill-bg);border:1px solid var(--pill-border);
+            border-radius:20px;padding:5px 12px;
+            font-size:13px;color:var(--text);cursor:pointer;
+            transition:background 0.15s;
+        }
+        .people-btn:hover{background:#5a5a5a;}
+        .people-count{font-weight:600;}
+        .avatars-row{display:flex;gap:-4px;}
+        .mini-av{
+            width:26px;height:26px;border-radius:50%;
+            font-size:11px;font-weight:700;
+            display:flex;align-items:center;justify-content:center;
+            border:2px solid var(--panel);
+            margin-left:-6px;
+            overflow:hidden;flex-shrink:0;
+        }
+        .mini-av img{width:100%;height:100%;object-fit:cover;}
+        .mini-av:first-child{margin-left:0;}
+
+        /* ── Body ── */
+        .cs-body{display:flex;flex:1;overflow:hidden;}
+
+        /* ── Sidebar / file tree ── */
+        .cs-sidebar{
+            width:220px;flex-shrink:0;
+            background:var(--sidebar);
+            border-right:1px solid var(--border);
+            display:flex;flex-direction:column;
+            overflow-y:auto;
+        }
+        .folder-group{border-bottom:1px solid var(--border);}
+        .folder-header{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:8px 12px;cursor:pointer;
+            font-size:13px;font-weight:600;
+            background:var(--pill-bg);
+            border:none;width:100%;color:var(--text);
+            text-align:left;
+            user-select:none;
+        }
+        .folder-header:hover{background:#5a5a5a;}
+        .folder-chevron{font-size:10px;transition:transform 0.2s;}
+        .folder-chevron.open{transform:rotate(180deg);}
+        .folder-files{display:none;}
+        .folder-files.open{display:block;}
+        .file-entry{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:6px 12px 6px 20px;
+            font-size:13px;cursor:pointer;
+            transition:background 0.12s;
+        }
+        .file-entry:hover{background:rgba(255,255,255,0.06);}
+        .file-entry.active{background:rgba(90,159,212,0.18);}
+        .file-entry-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+        .file-entry-del{
+            background:none;border:none;color:transparent;
+            font-size:13px;cursor:pointer;padding:0 2px;border-radius:3px;
+            transition:color 0.12s;
+        }
+        .file-entry:hover .file-entry-del{color:#f47c7c;}
+        .file-entry-del:hover{background:rgba(244,124,124,0.15);}
+        .sidebar-add-folder{
+            margin:10px 12px;padding:6px;
+            background:none;border:1px dashed var(--border);
+            border-radius:6px;color:var(--text-muted);
+            font-size:12px;cursor:pointer;text-align:center;
+            transition:all 0.15s;
+        }
+        .sidebar-add-folder:hover{border-color:var(--accent);color:var(--accent);}
+
+        /* ── Editor area ── */
+        .cs-editor{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+        /* Tab bar */
+        .tab-bar{
+            height:38px;flex-shrink:0;
+            background:var(--panel);
+            border-bottom:1px solid var(--border);
+            display:flex;align-items:flex-end;
+            padding:0 8px;gap:2px;
+            overflow-x:auto;
+        }
+        .editor-tab{
+            padding:6px 16px 7px;
+            background:var(--sidebar);
+            border:1px solid var(--border);border-bottom:none;
+            border-radius:6px 6px 0 0;
+            font-size:13px;color:var(--text-muted);
+            cursor:pointer;white-space:nowrap;
+            transition:all 0.12s;
+        }
+        .editor-tab:hover{color:var(--text);}
+        .editor-tab.active{
+            background:var(--bg);color:var(--text);
+            border-bottom-color:var(--bg);
+            margin-bottom:-1px;
+        }
+
+        /* Menu bar */
+        .menu-bar{
+            height:34px;flex-shrink:0;
+            background:var(--panel);
+            border-bottom:1px solid var(--border);
+            display:flex;align-items:center;
+            padding:0 8px;gap:4px;
+            position:relative;
+        }
+        .menu-btn{
+            padding:4px 12px;
+            background:none;border:1px solid transparent;
+            border-radius:5px;font-size:12px;color:var(--text);
+            cursor:pointer;transition:all 0.12s;white-space:nowrap;
+        }
+        .menu-btn:hover,.menu-btn.open{background:var(--sidebar);border-color:var(--border);}
+        .menu-dropdown{
+            position:absolute;top:calc(100% + 4px);
+            background:var(--sidebar);
+            border:1px solid var(--border);
+            border-radius:8px;
+            box-shadow:0 8px 24px rgba(0,0,0,0.5);
+            z-index:200;min-width:160px;
+            padding:4px 0;
+            display:none;
+        }
+        .menu-dropdown.open{display:block;animation:menuIn 0.12s ease;}
+        @keyframes menuIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+        .menu-item{
+            display:flex;align-items:center;gap:10px;
+            padding:8px 14px;
+            font-size:13px;color:var(--text);
+            cursor:pointer;border:none;background:none;
+            width:100%;text-align:left;transition:background 0.1s;
+        }
+        .menu-item:hover{background:rgba(255,255,255,0.07);}
+        .menu-item.danger{color:var(--danger);}
+        .menu-sep{height:1px;background:var(--border);margin:4px 0;}
+        .menu-label{padding:6px 14px 2px;font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono);}
+
+        /* Code editor */
+        .code-area{
+            flex:1;display:flex;overflow:hidden;
+            font-family:var(--mono);font-size:13.5px;
+        }
+        .line-numbers{
+            padding:14px 10px 14px 14px;
+            color:var(--text-muted);user-select:none;
+            text-align:right;font-size:12px;
+            line-height:1.65;min-width:46px;
+            border-right:1px solid var(--border);
+            background:var(--bg);flex-shrink:0;
+            overflow:hidden;white-space:pre;
+        }
+        .code-textarea{
+            flex:1;padding:14px;
+            background:var(--bg);color:var(--text);
+            font-family:var(--mono);font-size:13.5px;
+            line-height:1.65;border:none;outline:none;
+            resize:none;tab-size:4;
+            overflow:auto;white-space:pre;
+        }
+        .code-textarea::placeholder{color:#666;}
+        .no-file-placeholder{
+            flex:1;display:flex;align-items:center;justify-content:center;
+            font-family:var(--mono);font-size:13px;color:var(--text-muted);
+            flex-direction:column;gap:10px;
+        }
+
+        /* Status bar */
+        .status-bar{
+            height:24px;flex-shrink:0;
+            background:var(--accent-dim);
+            display:flex;align-items:center;justify-content:space-between;
+            padding:0 14px;font-family:var(--mono);font-size:10px;color:rgba(255,255,255,0.8);
+        }
+        .status-right{display:flex;gap:16px;}
+        .saved-indicator{color:#a8e6b5;}
+        .modified-indicator{color:#f4c76b;}
+
+        /* ── Find bar ── */
+        .find-bar{
+            height:38px;flex-shrink:0;
+            background:var(--panel);border-bottom:1px solid var(--border);
+            display:none;align-items:center;gap:8px;padding:0 12px;
+        }
+        .find-bar.open{display:flex;}
+        .find-input{
+            flex:1;padding:5px 10px;
+            background:var(--bg);border:1px solid var(--border);
+            border-radius:5px;color:var(--text);font-family:var(--mono);font-size:12px;
+            outline:none;
+        }
+        .find-input:focus{border-color:var(--accent);}
+        .find-btn{
+            padding:5px 12px;background:var(--pill-bg);border:1px solid var(--border);
+            border-radius:5px;color:var(--text);font-size:12px;cursor:pointer;
+        }
+        .find-btn:hover{background:#5a5a5a;}
+        .find-close{
+            background:none;border:none;color:var(--text-muted);
+            font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px;
+        }
+        .find-close:hover{color:var(--text);}
+        .find-count{font-family:var(--mono);font-size:11px;color:var(--text-muted);min-width:60px;}
+
+        /* ── People panel ── */
+        .people-panel{
+            position:absolute;top:48px;right:0;
+            width:280px;
+            background:var(--sidebar);
+            border:1px solid var(--border);
+            border-radius:10px 0 0 10px;
+            box-shadow:-4px 4px 20px rgba(0,0,0,0.4);
+            z-index:100;
+            display:none;max-height:calc(100vh - 60px);
+            flex-direction:column;
+        }
+        .people-panel.open{display:flex;animation:slideIn 0.18s ease;}
+        @keyframes slideIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+        .people-panel-header{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:14px 16px;border-bottom:1px solid var(--border);
+        }
+        .people-panel-title{font-size:18px;font-weight:600;}
+        .people-panel-close{
+            background:none;border:none;color:var(--danger);
+            font-size:18px;cursor:pointer;padding:2px 6px;border-radius:4px;
+            line-height:1;
+        }
+        .people-panel-close:hover{background:rgba(244,124,124,0.15);}
+        .people-list{flex:1;overflow-y:auto;padding:8px 0;}
+        .people-item{
+            display:flex;align-items:center;gap:12px;
+            padding:10px 16px;cursor:pointer;transition:background 0.12s;
+        }
+        .people-item:hover{background:rgba(255,255,255,0.05);}
+        .people-av{
+            width:48px;height:48px;border-radius:8px;
+            font-size:22px;font-weight:700;
+            display:flex;align-items:center;justify-content:center;
+            border:2px solid var(--pill-border);
+            flex-shrink:0;overflow:hidden;
+        }
+        .people-av img{width:100%;height:100%;object-fit:cover;}
+        .people-name{font-size:15px;font-weight:500;}
+        .people-role{font-size:11px;color:var(--text-muted);}
+        .people-online-dot{
+            width:8px;height:8px;border-radius:50%;
+            background:var(--success);flex-shrink:0;
+            margin-left:auto;
+        }
+        .people-panel-actions{
+            border-top:1px solid var(--border);padding:6px 0;
+        }
+        .people-action{
+            display:block;padding:8px 16px;
+            font-size:13px;color:var(--text-muted);
+            cursor:pointer;background:none;border:none;
+            width:100%;text-align:left;transition:all 0.12s;
+        }
+        .people-action:hover{color:var(--text);background:rgba(255,255,255,0.05);}
+        .people-action.danger{color:var(--danger);}
+        .people-action.danger:hover{background:rgba(244,124,124,0.1);}
+
+        /* ── Modals ── */
+        .modal-backdrop{
+            position:fixed;inset:0;
+            background:rgba(0,0,0,0.7);backdrop-filter:blur(2px);
+            z-index:300;display:flex;align-items:center;justify-content:center;
+        }
+        .modal{
+            background:var(--sidebar);border:1px solid var(--border);
+            border-radius:12px;padding:24px;width:360px;
+            box-shadow:0 16px 48px rgba(0,0,0,0.6);
+        }
+        .modal-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+        .modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+        .modal-input{
+            width:100%;padding:9px 12px;
+            background:var(--bg);border:1px solid var(--border);
+            border-radius:7px;color:var(--text);font-family:var(--mono);
+            font-size:13px;outline:none;transition:border-color 0.15s;
+        }
+        .modal-input:focus{border-color:var(--accent);}
+        .modal-quickpick{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+        .modal-chip{
+            padding:3px 9px;background:var(--pill-bg);
+            border:1px solid var(--pill-border);border-radius:4px;
+            color:var(--text-muted);font-family:var(--mono);font-size:11px;
+            cursor:pointer;transition:all 0.12s;
+        }
+        .modal-chip:hover{border-color:var(--accent);color:var(--accent);}
+        .modal-actions{display:flex;gap:8px;margin-top:18px;}
+        .btn-confirm{
+            flex:1;padding:9px;background:var(--accent-dim);color:white;
+            border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;
+        }
+        .btn-confirm:hover{background:var(--accent);}
+        .btn-cancel{
+            flex:1;padding:9px;background:var(--pill-bg);color:var(--text-muted);
+            border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer;
+        }
+        .btn-cancel:hover{color:var(--text);}
+
+        /* ── Toasts ── */
+        .toast-wrap{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+        .toast{
+            background:var(--sidebar);border:1px solid var(--border);
+            border-radius:7px;padding:10px 14px;
+            font-family:var(--mono);font-size:12px;color:var(--text);
+            box-shadow:0 4px 16px rgba(0,0,0,0.5);
+            animation:toastIn 0.2s ease;pointer-events:none;
+        }
+        @keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(6px)}}
+
+        @media(max-width:640px){
+            .cs-sidebar{display:none;}
+            .people-panel{width:100%;border-radius:0;}
+        }
+    </style>
+</head>
+<body>
+
+<div id="auth-gate">Authenticating…</div>
+
+<div class="shell" id="app-shell" style="display:none;">
+    <!-- Top bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <button class="btn-back" id="btn-back" title="Back to console">←</button>
+            <div class="cs-title" id="cs-title">Codespace</div>
+        </div>
+        <div class="topbar-right">
+            <div class="people-btn" id="people-btn">
+                <span class="people-count" id="people-count">1 Person</span>
+                <div class="avatars-row" id="avatars-row"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cs-body" style="position:relative;">
+        <!-- Sidebar / file tree -->
+        <aside class="cs-sidebar" id="cs-sidebar"></aside>
+
+        <!-- Editor -->
+        <section class="cs-editor">
+            <!-- Tab bar -->
+            <div class="tab-bar" id="tab-bar">
+                <div class="editor-tab active" id="active-tab">no file selected</div>
+            </div>
+            <!-- Menu bar -->
+            <div class="menu-bar" id="menu-bar">
+                <button class="menu-btn" data-menu="file">File</button>
+                <button class="menu-btn" data-menu="edit">Edit</button>
+                <button class="menu-btn" data-menu="find-menu">Find</button>
+                <!-- Dropdowns -->
+                <div class="menu-dropdown" id="menu-file">
+                    <div class="menu-label">File</div>
+                    <button class="menu-item" id="mi-new-file">＋ New File</button>
+                    <button class="menu-item" id="mi-new-folder">📁 New Folder</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-upload">↑ Upload File</button>
+                    <button class="menu-item" id="mi-download">↓ Download File</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-delete-file">🗑 Delete File</button>
+                    <button class="menu-item" id="mi-duplicate">⧉ Duplicate File</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-publish">✓ Publish Changes</button>
+                </div>
+                <div class="menu-dropdown" id="menu-edit">
+                    <div class="menu-label">Edit</div>
+                    <button class="menu-item" id="mi-undo">↩ Undo</button>
+                    <button class="menu-item" id="mi-redo">↪ Redo</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-cut">✂ Cut</button>
+                    <button class="menu-item" id="mi-copy">⧉ Copy</button>
+                    <button class="menu-item" id="mi-paste">📋 Paste</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-select-all">⬚ Select all</button>
+                </div>
+                <div class="menu-dropdown" id="menu-find-menu">
+                    <div class="menu-label">Find</div>
+                    <button class="menu-item" id="mi-find">🔍 Find</button>
+                    <button class="menu-item" id="mi-find-replace">⇄ Find and Replace</button>
+                    <div class="menu-sep"></div>
+                    <button class="menu-item" id="mi-replace-all">⇉ Replace all</button>
+                </div>
+            </div>
+            <!-- Find bar -->
+            <div class="find-bar" id="find-bar">
+                <input class="find-input" id="find-input" placeholder="Find…" spellcheck="false">
+                <input class="find-input" id="replace-input" placeholder="Replace…" spellcheck="false" style="display:none;">
+                <span class="find-count" id="find-count"></span>
+                <button class="find-btn" id="find-prev">↑</button>
+                <button class="find-btn" id="find-next">↓</button>
+                <button class="find-btn" id="find-replace-btn" style="display:none;">Replace</button>
+                <button class="find-btn" id="find-replace-all-btn" style="display:none;">All</button>
+                <button class="find-close" id="find-close">×</button>
+            </div>
+            <!-- Code area -->
+            <div class="code-area" id="code-area">
+                <div class="no-file-placeholder" id="no-file-msg">
+                    <span style="font-size:32px;">📄</span>
+                    <span>Select a file to start editing</span>
+                </div>
+            </div>
+            <!-- Status bar -->
+            <div class="status-bar">
+                <span id="status-file">—</span>
+                <div class="status-right">
+                    <span id="status-save"></span>
+                    <span id="status-lang">—</span>
+                    <span id="status-lines">0 lines</span>
+                    <span>UTF-8</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- People panel -->
+        <div class="people-panel" id="people-panel">
+            <div class="people-panel-header">
+                <div class="people-panel-title">People</div>
+                <button class="people-panel-close" id="people-panel-close">×</button>
+            </div>
+            <div class="people-list" id="people-list"></div>
+            <div class="people-panel-actions">
+                <button class="people-action" id="pa-manage">Manage people</button>
+                <button class="people-action danger" id="pa-leave">Leave Codespace</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New File modal -->
+<div class="modal-backdrop" id="new-file-modal" style="display:none;">
+    <div class="modal">
+        <div class="modal-title">New File</div>
+        <div class="modal-sub">Enter a filename with extension.</div>
+        <input type="text" class="modal-input" id="new-file-input" placeholder="e.g. index.js, styles.css" spellcheck="false" autocomplete="off">
+        <div class="modal-quickpick" id="new-file-qp"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" id="new-file-cancel">Cancel</button>
+            <button class="btn-confirm" id="new-file-confirm">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder modal -->
+<div class="modal-backdrop" id="new-folder-modal" style="display:none;">
+    <div class="modal">
+        <div class="modal-title">New Folder</div>
+        <div class="modal-sub">Files can be grouped into folders in this codespace.</div>
+        <input type="text" class="modal-input" id="new-folder-input" placeholder="Folder name" spellcheck="false" autocomplete="off">
+        <div class="modal-actions">
+            <button class="btn-cancel" id="new-folder-cancel">Cancel</button>
+            <button class="btn-confirm" id="new-folder-confirm">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- Hidden file upload -->
+<input type="file" id="upload-input" hidden accept=".js,.ts,.jsx,.tsx,.py,.html,.css,.scss,.json,.txt,.md,.sh,.go,.rs,.java,.cpp,.c,.cs,.rb,.php,.sql,.yaml,.yml">
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {
+    getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc,
+    deleteDoc, query, where, onSnapshot, serverTimestamp, setDoc, arrayUnion, arrayRemove
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+const app = initializeApp({
+    apiKey:"AIzaSyCQLI6-YVviG3cS0vbmud4oco8oGV01ySg",
+    authDomain:"codecloud-270fe.firebaseapp.com",
+    projectId:"codecloud-270fe",
+    storageBucket:"codecloud-270fe.firebasestorage.app",
+    messagingSenderId:"155488205416",
+    appId:"1:155488205416:web:a029e34bb4a3a1a63bd9dd"
+});
+const auth = getAuth(app), db = getFirestore(app);
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentUser = null;
+let repoId = null, repoData = null;
+let allFiles = [];          // [{id, fileName, code, folder}]
+let folders = [];           // [{id, name}]  from codespace_folders sub-collection
+let currentFileId = null;
+let unsavedChanges = false;
+let autoSaveTimer = null;
+let unsubFiles = null, unsubFolders = null, unsubPresence = null;
+let openMenuId = null;
+
+// ── URL params ─────────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+repoId = params.get('repo');
+if (!repoId) { location.href = 'console.html'; }
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+    if (!user) { location.href = 'auth.html'; return; }
+    currentUser = user;
+    document.getElementById('auth-gate').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    await init();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+    const snap = await getDoc(doc(db, 'repositories', repoId));
+    if (!snap.exists()) { toast('Repository not found', 'danger'); return; }
+    repoData = { id: snap.id, ...snap.data() };
+
+    // Permission check: must be owner or collaborator
+    const isOwner = repoData.uid === currentUser.uid;
+    const isCollab = Array.isArray(repoData.owners) && repoData.owners.includes(currentUser.uid);
+    if (!isOwner && !isCollab && !repoData.isPublic) {
+        toast('You do not have access to this codespace', 'danger');
+        setTimeout(() => location.href = 'console.html', 2000);
+        return;
+    }
+
+    document.getElementById('cs-title').textContent = repoData.name || 'Codespace';
+    document.title = (repoData.name || 'Codespace') + ' — CodeCloud';
+
+    // Register presence
+    await registerPresence();
+
+    // Start listeners
+    startFilesListener();
+    startFoldersListener();
+    startPresenceListener();
+
+    wireUI();
+}
+
+// ── Presence ───────────────────────────────────────────────────────────────
+async function registerPresence() {
+    const presRef = doc(db, 'repositories', repoId, 'presence', currentUser.uid);
+    await setDoc(presRef, {
+        uid: currentUser.uid,
+        name: currentUser.displayName || currentUser.email || 'User',
+        photoURL: currentUser.photoURL || '',
+        joinedAt: serverTimestamp(),
+        online: true
+    }, { merge: true });
+    // Mark offline on tab close
+    window.addEventListener('beforeunload', () => {
+        navigator.sendBeacon && setDoc(presRef, { online: false }, { merge: true });
+    });
+}
+
+function startPresenceListener() {
+    unsubPresence = onSnapshot(
+        collection(db, 'repositories', repoId, 'presence'),
+        snap => {
+            const online = snap.docs.filter(d => d.data().online !== false);
+            const count = online.length;
+            document.getElementById('people-count').textContent = count + (count === 1 ? ' Person' : ' People');
+            // Render avatar pills in topbar
+            const row = document.getElementById('avatars-row');
+            row.innerHTML = '';
+            online.slice(0, 5).forEach(d => {
+                const data = d.data();
+                const av = document.createElement('div');
+                const color = colorForUid(d.id);
+                av.className = 'mini-av';
+                av.style.background = color;
+                if (data.photoURL) {
+                    const img = document.createElement('img'); img.src = data.photoURL; av.appendChild(img);
+                } else {
+                    av.textContent = (data.name || 'U').charAt(0).toUpperCase();
+                }
+                row.appendChild(av);
+            });
+            // Render people panel
+            renderPeoplePanel(online.map(d => ({ id: d.id, ...d.data() })));
+        }
+    );
+}
+
+function colorForUid(uid) {
+    const colors = ['#e67e22','#9b59b6','#3498db','#1abc9c','#e74c3c','#f39c12','#2ecc71'];
+    let h = 0; for (let i = 0; i < uid.length; i++) h = uid.charCodeAt(i) + ((h << 5) - h);
+    return colors[Math.abs(h) % colors.length];
+}
+
+function renderPeoplePanel(people) {
+    const list = document.getElementById('people-list');
+    list.innerHTML = '';
+    people.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'people-item';
+        const av = document.createElement('div');
+        av.className = 'people-av';
+        av.style.background = colorForUid(p.uid || p.id || '');
+        if (p.photoURL) { const img = document.createElement('img'); img.src = p.photoURL; av.appendChild(img); }
+        else av.textContent = (p.name || 'U').charAt(0).toUpperCase();
+        const info = document.createElement('div');
+        const name = document.createElement('div'); name.className = 'people-name';
+        name.textContent = (p.uid === currentUser.uid ? p.name + ' (you)' : p.name) || 'Unknown';
+        const role = document.createElement('div'); role.className = 'people-role';
+        role.textContent = repoData.uid === (p.uid || p.id) ? 'Owner' : 'Collaborator';
+        info.append(name, role);
+        const dot = document.createElement('div'); dot.className = 'people-online-dot';
+        item.append(av, info, dot);
+        list.appendChild(item);
+    });
+}
+
+// ── File tree ──────────────────────────────────────────────────────────────
+function startFilesListener() {
+    unsubFiles = onSnapshot(
+        query(collection(db, 'files'), where('repoId', '==', repoId)),
+        snap => {
+            allFiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderSidebar();
+            // If current file was updated remotely, reload it (if we don't have unsaved changes)
+            if (currentFileId && !unsavedChanges) {
+                const f = allFiles.find(x => x.id === currentFileId);
+                if (f) {
+                    const ta = document.getElementById('code-editor');
+                    if (ta && ta.value !== f.code) {
+                        ta.value = f.code || '';
+                        updateLineNumbers();
+                        updateStatus();
+                    }
+                }
+            }
+        }
+    );
+}
+
+function startFoldersListener() {
+    // Codespace folders are stored per-repo in a sub-collection
+    unsubFolders = onSnapshot(
+        collection(db, 'repositories', repoId, 'cs_folders'),
+        snap => {
+            folders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderSidebar();
+        }
+    );
+}
+
+function renderSidebar() {
+    const sidebar = document.getElementById('cs-sidebar');
+    sidebar.innerHTML = '';
+
+    // Group files by folder
+    const ungrouped = allFiles.filter(f => !f.csFolder);
+    const folderMap = {};
+    folders.forEach(folder => { folderMap[folder.id] = []; });
+    allFiles.forEach(f => {
+        if (f.csFolder && folderMap[f.csFolder] !== undefined) {
+            folderMap[f.csFolder].push(f);
+        }
+    });
+
+    // Render folders
+    folders.sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach(folder => {
+        const group = document.createElement('div');
+        group.className = 'folder-group';
+
+        const hdr = document.createElement('button');
+        hdr.className = 'folder-header';
+        hdr.innerHTML = `<span>${escText(folder.name)}</span><span class="folder-chevron open">▼</span>`;
+        hdr.onclick = () => {
+            const files = group.querySelector('.folder-files');
+            const chev = hdr.querySelector('.folder-chevron');
+            files.classList.toggle('open');
+            chev.classList.toggle('open');
+        };
+
+        const fileList = document.createElement('div');
+        fileList.className = 'folder-files open';
+        (folderMap[folder.id] || []).forEach(f => fileList.appendChild(makeFileEntry(f)));
+        group.append(hdr, fileList);
+        sidebar.appendChild(group);
+    });
+
+    // Ungrouped files at bottom
+    if (ungrouped.length || !folders.length) {
+        const group = document.createElement('div');
+        group.className = 'folder-group';
+        if (folders.length) {
+            const hdr = document.createElement('button');
+            hdr.className = 'folder-header';
+            hdr.innerHTML = `<span style="color:#999;font-size:11px;">Ungrouped</span><span class="folder-chevron open">▼</span>`;
+            hdr.onclick = () => {
+                const files = group.querySelector('.folder-files');
+                const chev = hdr.querySelector('.folder-chevron');
+                files.classList.toggle('open');
+                chev.classList.toggle('open');
+            };
+            group.appendChild(hdr);
+        }
+        const fileList = document.createElement('div');
+        fileList.className = 'folder-files open';
+        ungrouped.sort((a, b) => (a.fileName || '').localeCompare(b.fileName || '')).forEach(f => fileList.appendChild(makeFileEntry(f)));
+        group.appendChild(fileList);
+        sidebar.appendChild(group);
+    }
+
+    // Add folder button
+    const addFolderBtn = document.createElement('button');
+    addFolderBtn.className = 'sidebar-add-folder';
+    addFolderBtn.textContent = '＋ Add Folder';
+    addFolderBtn.onclick = () => openModal('new-folder-modal', () => document.getElementById('new-folder-input').focus());
+    sidebar.appendChild(addFolderBtn);
+}
+
+function makeFileEntry(f) {
+    const entry = document.createElement('div');
+    entry.className = 'file-entry' + (f.id === currentFileId ? ' active' : '');
+    entry.dataset.id = f.id;
+
+    const name = document.createElement('span');
+    name.className = 'file-entry-name';
+    name.textContent = f.fileName || 'untitled';
+
+    const del = document.createElement('button');
+    del.className = 'file-entry-del';
+    del.innerHTML = '✕';
+    del.title = 'Delete file';
+    del.onclick = async e => {
+        e.stopPropagation();
+        if (!confirm(`Delete "${f.fileName}"?`)) return;
+        if (currentFileId === f.id) closeEditor();
+        await deleteDoc(doc(db, 'files', f.id));
+        toast(`Deleted ${f.fileName}`, 'danger');
+    };
+
+    entry.append(name, del);
+    entry.onclick = () => openFile(f.id);
+    return entry;
+}
+
+// ── Editor ─────────────────────────────────────────────────────────────────
+function openFile(fileId) {
+    if (unsavedChanges) {
+        if (!confirm('You have unsaved changes. Discard them?')) return;
+    }
+    const f = allFiles.find(x => x.id === fileId);
+    if (!f) return;
+    currentFileId = fileId;
+    unsavedChanges = false;
+
+    // Rebuild code area
+    const area = document.getElementById('code-area');
+    area.innerHTML = '';
+
+    const lnDiv = document.createElement('div');
+    lnDiv.className = 'line-numbers';
+    lnDiv.id = 'line-numbers';
+
+    const ta = document.createElement('textarea');
+    ta.className = 'code-textarea';
+    ta.id = 'code-editor';
+    ta.value = f.code || '';
+    ta.setAttribute('spellcheck', 'false');
+    ta.setAttribute('wrap', 'off');
+    ta.placeholder = '// Start typing…';
+
+    area.append(lnDiv, ta);
+
+    // Events
+    ta.addEventListener('input', () => {
+        updateLineNumbers();
+        updateStatus();
+        markUnsaved();
+        scheduleAutoSave();
+    });
+    ta.addEventListener('scroll', () => { lnDiv.scrollTop = ta.scrollTop; });
+    ta.addEventListener('keydown', e => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = ta.selectionStart, end = ta.selectionEnd;
+            ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+            ta.selectionStart = ta.selectionEnd = s + 4;
+            updateLineNumbers();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveCurrentFile();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            openFind(false);
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            document.execCommand('undo');
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+            e.preventDefault();
+            document.execCommand('redo');
+        }
+    });
+
+    // Tab label
+    document.getElementById('active-tab').textContent = f.fileName || 'untitled';
+    document.getElementById('status-file').textContent = f.fileName || '—';
+    document.getElementById('status-lang').textContent = getExt(f.fileName).toUpperCase() || '—';
+
+    updateLineNumbers();
+    updateStatus();
+    renderSidebar(); // refresh active state
+    ta.focus();
+}
+
+function closeEditor() {
+    currentFileId = null;
+    unsavedChanges = false;
+    clearTimeout(autoSaveTimer);
+    const area = document.getElementById('code-area');
+    area.innerHTML = '<div class="no-file-placeholder" id="no-file-msg"><span style="font-size:32px;">📄</span><span>Select a file to start editing</span></div>';
+    document.getElementById('active-tab').textContent = 'no file selected';
+    document.getElementById('status-file').textContent = '—';
+    document.getElementById('status-lang').textContent = '—';
+    document.getElementById('status-lines').textContent = '0 lines';
+    document.getElementById('status-save').textContent = '';
+    renderSidebar();
+}
+
+function updateLineNumbers() {
+    const lnDiv = document.getElementById('line-numbers');
+    const ta = document.getElementById('code-editor');
+    if (!lnDiv || !ta) return;
+    const lines = (ta.value || ' ').split('\n').length;
+    lnDiv.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+}
+
+function updateStatus() {
+    const ta = document.getElementById('code-editor');
+    if (!ta) return;
+    const lines = ta.value.split('\n').length;
+    document.getElementById('status-lines').textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+}
+
+function markUnsaved() {
+    unsavedChanges = true;
+    document.getElementById('status-save').textContent = '● unsaved';
+    document.getElementById('status-save').style.color = '#f4c76b';
+}
+
+function scheduleAutoSave() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(saveCurrentFile, 2000);
+}
+
+async function saveCurrentFile() {
+    if (!currentFileId) return;
+    const ta = document.getElementById('code-editor');
+    if (!ta) return;
+    clearTimeout(autoSaveTimer);
+    try {
+        await updateDoc(doc(db, 'files', currentFileId), { code: ta.value });
+        unsavedChanges = false;
+        const saveEl = document.getElementById('status-save');
+        saveEl.textContent = '✓ saved';
+        saveEl.style.color = '#6bcb77';
+        setTimeout(() => { if (saveEl.textContent === '✓ saved') saveEl.textContent = ''; }, 2000);
+    } catch (e) {
+        toast('Failed to save: ' + e.message, 'danger');
+    }
+}
+
+// ── Find / Replace ─────────────────────────────────────────────────────────
+let findMatches = [], findIndex = 0, replaceMode = false;
+
+function openFind(replace) {
+    replaceMode = replace;
+    const bar = document.getElementById('find-bar');
+    bar.classList.add('open');
+    document.getElementById('replace-input').style.display = replace ? '' : 'none';
+    document.getElementById('find-replace-btn').style.display = replace ? '' : 'none';
+    document.getElementById('find-replace-all-btn').style.display = replace ? '' : 'none';
+    document.getElementById('find-input').focus();
+    document.getElementById('find-input').select();
+    doFind();
+}
+
+function doFind() {
+    const ta = document.getElementById('code-editor');
+    if (!ta) return;
+    const needle = document.getElementById('find-input').value;
+    findMatches = [];
+    if (!needle) { document.getElementById('find-count').textContent = ''; return; }
+    const text = ta.value;
+    let i = 0;
+    while ((i = text.indexOf(needle, i)) !== -1) { findMatches.push(i); i += needle.length; }
+    document.getElementById('find-count').textContent = findMatches.length ? `${findIndex + 1}/${findMatches.length}` : 'no results';
+    if (findMatches.length) highlightMatch();
+}
+
+function highlightMatch() {
+    const ta = document.getElementById('code-editor');
+    if (!ta || !findMatches.length) return;
+    findIndex = ((findIndex % findMatches.length) + findMatches.length) % findMatches.length;
+    const needle = document.getElementById('find-input').value;
+    ta.setSelectionRange(findMatches[findIndex], findMatches[findIndex] + needle.length);
+    ta.focus();
+    document.getElementById('find-count').textContent = `${findIndex + 1}/${findMatches.length}`;
+}
+
+// ── New file / folder ──────────────────────────────────────────────────────
+const QUICK_EXTS = ['js','ts','jsx','tsx','py','html','css','scss','json','md','sh','go','rs','java','cpp','c','cs','php','rb','sql','yaml','txt'];
+
+function buildQuickPick() {
+    const qp = document.getElementById('new-file-qp');
+    qp.innerHTML = '';
+    QUICK_EXTS.forEach(ext => {
+        const chip = document.createElement('button');
+        chip.className = 'modal-chip';
+        chip.textContent = '.' + ext;
+        chip.onclick = () => {
+            const inp = document.getElementById('new-file-input');
+            const cur = inp.value.trim();
+            if (!cur || cur.startsWith('.')) inp.value = 'untitled.' + ext;
+            else { const parts = cur.split('.'); parts[parts.length - 1] = ext; inp.value = parts.join('.'); }
+            inp.focus();
+        };
+        qp.appendChild(chip);
+    });
+}
+
+async function createNewFile(fileName) {
+    if (!fileName || !fileName.includes('.') || fileName.endsWith('.')) {
+        toast('Include a valid extension (e.g. index.js)', 'warn'); return;
+    }
+    const ref = await addDoc(collection(db, 'files'), {
+        repoId, uid: currentUser.uid,
+        fileName, code: '', createdAt: serverTimestamp()
+    });
+    toast(`Created ${fileName}`, 'success');
+    openFile(ref.id);
+}
+
+async function createFolder(name) {
+    if (!name.trim()) return;
+    await addDoc(collection(db, 'repositories', repoId, 'cs_folders'), {
+        name: name.trim(), createdAt: serverTimestamp()
+    });
+    toast(`Folder "${name}" created`, 'success');
+}
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+document.getElementById('upload-input').onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+        const ref = await addDoc(collection(db, 'files'), {
+            repoId, uid: currentUser.uid,
+            fileName: file.name, code: ev.target.result, createdAt: serverTimestamp()
+        });
+        toast(`Uploaded ${file.name}`, 'success');
+        openFile(ref.id);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+};
+
+// ── Download ───────────────────────────────────────────────────────────────
+function downloadCurrentFile() {
+    if (!currentFileId) { toast('No file selected', 'warn'); return; }
+    const ta = document.getElementById('code-editor');
+    const f = allFiles.find(x => x.id === currentFileId);
+    if (!ta || !f) return;
+    const blob = new Blob([ta.value], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = f.fileName || 'file.txt';
+    a.click();
+    toast(`Downloading ${f.fileName}`, 'success');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function getExt(name) {
+    const p = (name || '').split('.'); return p.length > 1 ? p.pop().toLowerCase() : '';
+}
+function escText(str) {
+    const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML;
+}
+function toast(msg, type = 'info') {
+    const colors = { info: '#5a9fd4', success: '#6bcb77', danger: '#f47c7c', warn: '#f4c76b' };
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.style.borderLeft = `3px solid ${colors[type] || colors.info}`;
+    t.textContent = msg;
+    document.getElementById('toast-wrap').appendChild(t);
+    setTimeout(() => { t.style.animation = 'toastOut 0.2s ease forwards'; setTimeout(() => t.remove(), 220); }, 2800);
+}
+function openModal(id, cb) {
+    document.getElementById(id).style.display = 'flex';
+    setTimeout(() => cb && cb(), 50);
+}
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// ── Wire UI ────────────────────────────────────────────────────────────────
+function wireUI() {
+    // Back button
+    document.getElementById('btn-back').onclick = () => {
+        if (unsavedChanges && !confirm('You have unsaved changes. Leave anyway?')) return;
+        location.href = 'console.html';
+    };
+
+    // People panel
+    document.getElementById('people-btn').onclick = () => {
+        document.getElementById('people-panel').classList.toggle('open');
+    };
+    document.getElementById('people-panel-close').onclick = () => {
+        document.getElementById('people-panel').classList.remove('open');
+    };
+    document.getElementById('pa-manage').onclick = () => {
+        toast('Manage people via Repo Settings in the console', 'info');
+    };
+    document.getElementById('pa-leave').onclick = async () => {
+        if (confirm('Leave this codespace?')) {
+            await setDoc(doc(db, 'repositories', repoId, 'presence', currentUser.uid), { online: false }, { merge: true });
+            location.href = 'console.html';
+        }
+    };
+
+    // Menus
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+        btn.onclick = e => {
+            e.stopPropagation();
+            const id = 'menu-' + btn.dataset.menu;
+            const isOpen = document.getElementById(id).classList.contains('open');
+            closeAllMenus();
+            if (!isOpen) {
+                document.getElementById(id).classList.add('open');
+                btn.classList.add('open');
+                openMenuId = id;
+                // Position dropdown below the button
+                const rect = btn.getBoundingClientRect();
+                document.getElementById(id).style.left = rect.left + 'px';
+            }
+        };
+    });
+    document.addEventListener('click', closeAllMenus);
+
+    // File menu
+    document.getElementById('mi-new-file').onclick = () => { closeAllMenus(); buildQuickPick(); openModal('new-file-modal', () => document.getElementById('new-file-input').focus()); document.getElementById('new-file-input').value = ''; };
+    document.getElementById('mi-new-folder').onclick = () => { closeAllMenus(); openModal('new-folder-modal', () => document.getElementById('new-folder-input').focus()); document.getElementById('new-folder-input').value = ''; };
+    document.getElementById('mi-upload').onclick = () => { closeAllMenus(); document.getElementById('upload-input').click(); };
+    document.getElementById('mi-download').onclick = () => { closeAllMenus(); downloadCurrentFile(); };
+    document.getElementById('mi-delete-file').onclick = async () => {
+        closeAllMenus();
+        if (!currentFileId) { toast('No file selected', 'warn'); return; }
+        const f = allFiles.find(x => x.id === currentFileId);
+        if (!confirm(`Delete "${f?.fileName}"?`)) return;
+        closeEditor();
+        await deleteDoc(doc(db, 'files', currentFileId));
+        toast('File deleted', 'danger');
+    };
+    document.getElementById('mi-duplicate').onclick = async () => {
+        closeAllMenus();
+        if (!currentFileId) { toast('No file selected', 'warn'); return; }
+        const f = allFiles.find(x => x.id === currentFileId);
+        const ta = document.getElementById('code-editor');
+        const ext = getExt(f.fileName);
+        const base = f.fileName.slice(0, f.fileName.lastIndexOf('.'));
+        const ref = await addDoc(collection(db, 'files'), {
+            repoId, uid: currentUser.uid,
+            fileName: base + '_copy.' + ext,
+            code: ta ? ta.value : (f.code || ''),
+            createdAt: serverTimestamp()
+        });
+        toast(`Duplicated as ${base}_copy.${ext}`, 'success');
+        openFile(ref.id);
+    };
+    document.getElementById('mi-publish').onclick = async () => {
+        closeAllMenus();
+        await saveCurrentFile();
+        toast('Changes published to repository', 'success');
+    };
+
+    // Edit menu
+    document.getElementById('mi-undo').onclick = () => { closeAllMenus(); document.execCommand('undo'); };
+    document.getElementById('mi-redo').onclick = () => { closeAllMenus(); document.execCommand('redo'); };
+    document.getElementById('mi-cut').onclick = () => { closeAllMenus(); document.execCommand('cut'); };
+    document.getElementById('mi-copy').onclick = () => { closeAllMenus(); document.execCommand('copy'); };
+    document.getElementById('mi-paste').onclick = () => { closeAllMenus(); document.getElementById('code-editor')?.focus(); document.execCommand('paste'); };
+    document.getElementById('mi-select-all').onclick = () => { closeAllMenus(); const ta = document.getElementById('code-editor'); if (ta) { ta.focus(); ta.select(); } };
+
+    // Find menu
+    document.getElementById('mi-find').onclick = () => { closeAllMenus(); openFind(false); };
+    document.getElementById('mi-find-replace').onclick = () => { closeAllMenus(); openFind(true); };
+    document.getElementById('mi-replace-all').onclick = () => { closeAllMenus(); openFind(true); };
+
+    // Find bar
+    document.getElementById('find-input').addEventListener('input', doFind);
+    document.getElementById('find-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { findIndex++; highlightMatch(); }
+        if (e.key === 'Escape') document.getElementById('find-bar').classList.remove('open');
+    });
+    document.getElementById('find-next').onclick = () => { findIndex++; highlightMatch(); };
+    document.getElementById('find-prev').onclick = () => { findIndex--; highlightMatch(); };
+    document.getElementById('find-close').onclick = () => document.getElementById('find-bar').classList.remove('open');
+    document.getElementById('find-replace-btn').onclick = () => {
+        const ta = document.getElementById('code-editor'); if (!ta || !findMatches.length) return;
+        const needle = document.getElementById('find-input').value;
+        const replacement = document.getElementById('replace-input').value;
+        const idx = findMatches[findIndex];
+        ta.setSelectionRange(idx, idx + needle.length);
+        document.execCommand('insertText', false, replacement);
+        doFind();
+    };
+    document.getElementById('find-replace-all-btn').onclick = () => {
+        const ta = document.getElementById('code-editor'); if (!ta) return;
+        const needle = document.getElementById('find-input').value;
+        const replacement = document.getElementById('replace-input').value;
+        if (!needle) return;
+        ta.value = ta.value.split(needle).join(replacement);
+        markUnsaved(); scheduleAutoSave(); doFind();
+    };
+
+    // New file modal
+    document.getElementById('new-file-confirm').onclick = async () => {
+        const val = document.getElementById('new-file-input').value.trim();
+        closeModal('new-file-modal');
+        await createNewFile(val);
+    };
+    document.getElementById('new-file-cancel').onclick = () => closeModal('new-file-modal');
+    document.getElementById('new-file-input').onkeydown = e => { if (e.key === 'Enter') document.getElementById('new-file-confirm').click(); if (e.key === 'Escape') closeModal('new-file-modal'); };
+
+    // New folder modal
+    document.getElementById('new-folder-confirm').onclick = async () => {
+        const val = document.getElementById('new-folder-input').value.trim();
+        closeModal('new-folder-modal');
+        await createFolder(val);
+    };
+    document.getElementById('new-folder-cancel').onclick = () => closeModal('new-folder-modal');
+    document.getElementById('new-folder-input').onkeydown = e => { if (e.key === 'Enter') document.getElementById('new-folder-confirm').click(); if (e.key === 'Escape') closeModal('new-folder-modal'); };
+
+    // Close modals on backdrop click
+    ['new-file-modal', 'new-folder-modal'].forEach(id => {
+        document.getElementById(id).onclick = e => { if (e.target === document.getElementById(id)) closeModal(id); };
+    });
+}
+
+function closeAllMenus() {
+    document.querySelectorAll('.menu-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('open'));
+    openMenuId = null;
+}
+</script>
+</body>
+</html>
